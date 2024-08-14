@@ -1,0 +1,121 @@
+local Player = game.Players.LocalPlayer
+local Tycoon = game.Workspace.Tycoons:GetChildren()[4]
+local MainCollectionArea = Tycoon.StarterItems.MainCollectionArea.Hitbox
+local MoneyBagName = "MoneyBag"
+local HandleName = "Handle"
+local isCollecting = false
+local previousPosition = nil
+
+-- Crear la GUI
+local ScreenGui = Instance.new("ScreenGui")
+local Frame = Instance.new("Frame")
+local ToggleButton = Instance.new("TextButton")
+local ServerHopButton = Instance.new("TextButton")
+local MinimizeButton = Instance.new("TextButton")
+local MiniCircle = Instance.new("TextButton")
+
+-- Configuración de la GUI
+ScreenGui.Parent = Player:WaitForChild("PlayerGui")
+Frame.Size = UDim2.new(0, 200, 0, 150) -- Ajustar el tamaño del Frame para incluir todos los botones
+Frame.Position = UDim2.new(0, 10, 0, 10)
+Frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+Frame.Parent = ScreenGui
+
+-- Botón para activar la recolección
+ToggleButton.Size = UDim2.new(0, 180, 0, 50)
+ToggleButton.Position = UDim2.new(0, 10, 0, 10)
+ToggleButton.Text = "Activar Recolección"
+ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+ToggleButton.Parent = Frame
+
+-- Botón para activar el Server Hop
+ServerHopButton.Size = UDim2.new(0, 180, 0, 30)
+ServerHopButton.Position = UDim2.new(0, 10, 0, 70)
+ServerHopButton.Text = "Activar Serverhop"
+ServerHopButton.BackgroundColor3 = Color3.fromRGB(0, 0, 200)
+ServerHopButton.Parent = Frame
+
+-- Botón para minimizar la GUI
+MinimizeButton.Size = UDim2.new(0, 180, 0, 30)
+MinimizeButton.Position = UDim2.new(0, 10, 0, 110)
+MinimizeButton.Text = "Minimizar"
+MinimizeButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+MinimizeButton.Parent = Frame
+
+MiniCircle.Size = UDim2.new(0, 50, 0, 50)
+MiniCircle.Position = UDim2.new(0, 10, 0, 10)
+MiniCircle.Text = "+"
+MiniCircle.Visible = false
+MiniCircle.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+MiniCircle.Parent = ScreenGui
+
+-- Función para alternar la recolección
+ToggleButton.MouseButton1Click:Connect(function()
+    isCollecting = not isCollecting
+    if isCollecting then
+        -- Guardar la posición original
+        previousPosition = Player.Character.HumanoidRootPart.Position
+        ToggleButton.Text = "Desactivar Recolección"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+    else
+        ToggleButton.Text = "Activar Recolección"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+    end
+end)
+
+-- Función para minimizar la GUI
+MinimizeButton.MouseButton1Click:Connect(function()
+    Frame.Visible = false
+    MiniCircle.Visible = true
+end)
+
+-- Función para maximizar la GUI
+MiniCircle.MouseButton1Click:Connect(function()
+    Frame.Visible = true
+    MiniCircle.Visible = false
+end)
+
+-- Función para cambiar de servidor
+ServerHopButton.MouseButton1Click:Connect(function()
+    local TeleportService = game:GetService("TeleportService")
+    local PlaceId = game.PlaceId  -- El ID del lugar actual
+    TeleportService:Teleport(PlaceId, Player)  -- Teletransporta al jugador al mismo lugar (para cambiar de servidor)
+end)
+
+-- Función para recolectar oro y volver a la posición anterior
+local function collectGold()
+    while wait(0.1) do
+        if isCollecting then
+            for _, moneyBag in pairs(game.Workspace:GetChildren()) do
+                if moneyBag.Name == MoneyBagName and moneyBag:FindFirstChild(HandleName) then
+                    -- Guardar la posición actual antes de moverse al Handle
+                    local currentPosition = Player.Character.HumanoidRootPart.Position
+
+                    -- Esperar 3 segundos antes de intentar recoger el oro
+                    wait(3)
+                    
+                    -- Desactivar la colisión temporalmente
+                    Player.Character.HumanoidRootPart.CanCollide = false
+
+                    -- Teletransportar al Handle
+                    local handle = moneyBag[HandleName]
+                    Player.Character:SetPrimaryPartCFrame(CFrame.new(handle.Position))
+                    wait(0.5)  -- Espera para asegurar la recogida
+                    
+                    -- Reactivar la colisión
+                    Player.Character.HumanoidRootPart.CanCollide = true
+
+                    -- Volver a la posición anterior
+                    Player.Character:SetPrimaryPartCFrame(CFrame.new(currentPosition))
+                    wait(0.5)  -- Espera para asegurarse de volver
+
+                    -- Salir del bucle para recolectar un solo oro
+                    break
+                end
+            end
+        end
+    end
+end
+
+-- Iniciar la función de recolección en un nuevo hilo
+spawn(collectGold)
